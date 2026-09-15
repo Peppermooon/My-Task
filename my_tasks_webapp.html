@@ -41,7 +41,7 @@
     *{box-sizing:border-box}
     body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
     .app{max-width:1200px;margin:0 auto;padding:22px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.notify-btn{background:#fff;border:1px solid var(--line);color:var(--text)}.notify-btn.enabled{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
     .title-wrap h1{margin:0;font-size:30px}.title-wrap p{margin:4px 0 0;color:var(--muted)}
     .btn{border:none;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer}
     .btn-primary{background:var(--primary);color:#fff}.btn-light{background:#fff;border:1px solid var(--line);color:var(--text)}
@@ -83,7 +83,7 @@
     .modal-head h3{margin:0}.modal-body{padding:18px 20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:13px;font-weight:800}.field input,.field select,.field textarea{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px 11px;font:inherit}.field textarea{min-height:84px;resize:vertical}
     .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid var(--line)}
     .hint{font-size:12px;color:var(--muted);margin-top:8px}.danger{color:var(--red)}
-    @media(max-width:850px){.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:24px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+    @media(max-width:850px){.topbar{align-items:flex-start}.top-actions{justify-content:flex-end}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:24px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
   </style>
 </head>
 <body>
@@ -93,7 +93,10 @@
       <h1>My Tasks</h1>
       <p>Record, track and complete your tasks on time. <span id="syncState" style="font-size:12px;margin-left:6px">Connecting…</span></p>
     </div>
-    <button class="btn btn-primary" onclick="openTaskModal()">＋ Add Task</button>
+    <div class="top-actions">
+      <button id="enableNotificationsBtn" class="btn notify-btn" type="button" onclick="enablePushNotifications()">🔔 Enable Notifications</button>
+      <button class="btn btn-primary" onclick="openTaskModal()">＋ Add Task</button>
+    </div>
   </div>
 
   <div class="stats">
@@ -155,9 +158,56 @@ const SUPABASE_URL='https://hegddozeaqdztyyhsazr.supabase.co';
 const SUPABASE_KEY='sb_publishable_zss60vbps4U1fbVbqGT5IQ_oaxsbaiy';
 const TASKS_ENDPOINT=`${SUPABASE_URL}/rest/v1/tasks`;
 const STORAGE_KEY='mytasks_v1'; // kept only as an offline cache
+let oneSignalReady=false;
 let tasks=[];
 let currentFilter='all';
 let allTaskSort='newest';
+
+
+function updateNotificationButton(permission){
+  const btn=document.getElementById('enableNotificationsBtn');
+  if(!btn)return;
+  if(permission===true || permission==='granted'){
+    btn.textContent='🔔 Notifications On';
+    btn.classList.add('enabled');
+  }else if(permission==='denied'){
+    btn.textContent='🔕 Notifications Blocked';
+    btn.classList.remove('enabled');
+  }else{
+    btn.textContent='🔔 Enable Notifications';
+    btn.classList.remove('enabled');
+  }
+}
+
+function enablePushNotifications(){
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal){
+    try{
+      const supported = await OneSignal.Notifications.isPushSupported();
+      if(!supported){
+        alert('Push notifications are not supported in this browser/device. On iPhone, open the app from the Home Screen and use iOS 16.4 or newer.');
+        return;
+      }
+      await OneSignal.Notifications.requestPermission();
+      updateNotificationButton(OneSignal.Notifications.permission);
+      if(OneSignal.Notifications.permission){
+        alert('Notifications are enabled for My Tasks.');
+      }
+    }catch(err){
+      console.error('Notification permission error:',err);
+      alert('Could not enable notifications. Please check iPhone Settings > Notifications and OneSignal configuration.');
+    }
+  });
+}
+
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal){
+  oneSignalReady=true;
+  updateNotificationButton(OneSignal.Notifications.permission);
+  OneSignal.Notifications.addEventListener('permissionChange', function(permission){
+    updateNotificationButton(permission);
+  });
+});
 
 const todayISO=()=>{const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10)};
 const fmt=(s)=> s ? new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}) : '—';
