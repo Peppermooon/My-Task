@@ -11,6 +11,27 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>My Tasks</title>
+  <!-- OneSignal Web Push SDK -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      const workerUrl = new URL('./push/onesignal/OneSignalSDKWorker.js', window.location.href);
+      const workerScopeUrl = new URL('./push/onesignal/', window.location.href);
+      try {
+        await OneSignal.init({
+          appId: "73708780-d0d6-49c0-8e8c-debed904066d",
+          serviceWorkerPath: workerUrl.pathname,
+          serviceWorkerParam: { scope: workerScopeUrl.pathname },
+          autoResubscribe: true
+        });
+        console.log('OneSignal initialized');
+      } catch (error) {
+        console.error('OneSignal initialization failed:', error);
+      }
+    });
+  </script>
+
   <style>
     :root{
       --bg:#f5f7fb; --card:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
