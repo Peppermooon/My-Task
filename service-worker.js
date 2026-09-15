@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-tasks-v1';
+const CACHE_NAME = 'my-tasks-v3';
 const APP_ASSETS = [
   './',
   './index.html',
