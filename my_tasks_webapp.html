@@ -167,11 +167,12 @@ let allTaskSort='newest';
 function updateNotificationButton(permission, subscribed){
   const btn=document.getElementById('enableNotificationsBtn');
   if(!btn)return;
+  btn.disabled=false;
   if(subscribed===true){
     btn.textContent='🔔 Notifications On';
     btn.classList.add('enabled');
     btn.style.display='none';
-  }else if(permission==='denied'){
+  }else if(permission==='denied' || permission===false && typeof Notification!=='undefined' && Notification.permission==='denied'){
     btn.textContent='🔕 Notifications Blocked';
     btn.classList.remove('enabled');
     btn.style.display='inline-flex';
@@ -182,68 +183,100 @@ function updateNotificationButton(permission, subscribed){
   }
 }
 
-async function ensureOneSignalSubscription(OneSignal, showResult){
-  const permission = OneSignal.Notifications.permission;
-  if(permission){
-    await OneSignal.User.PushSubscription.optIn();
-    for(let i=0;i<20;i++){
-      const id=OneSignal.User.PushSubscription.id;
-      const opted=OneSignal.User.PushSubscription.optedIn;
-      if(id && opted){
-        updateNotificationButton(permission,true);
-        if(showResult) alert('Notifications are enabled and this device is subscribed.');
-        return id;
-      }
-      await new Promise(r=>setTimeout(r,500));
-    }
-    updateNotificationButton(permission,false);
-    if(showResult) alert('Notification permission is allowed, but OneSignal has not created the push subscription yet. Close and reopen the app, then try again.');
-    return null;
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function readPushState(OneSignal){
+  return {
+    permission: OneSignal.Notifications.permission,
+    nativePermission: (typeof Notification!=='undefined' ? Notification.permission : 'unavailable'),
+    id: OneSignal.User.PushSubscription.id || null,
+    token: OneSignal.User.PushSubscription.token || null,
+    optedIn: !!OneSignal.User.PushSubscription.optedIn
+  };
+}
+
+async function completePushSubscription(OneSignal, showResult=false){
+  let state=await readPushState(OneSignal);
+
+  if(!state.permission){
+    await OneSignal.Notifications.requestPermission();
+    await wait(500);
+    state=await readPushState(OneSignal);
   }
-  updateNotificationButton(permission,false);
-  return null;
+
+  if(!state.permission){
+    updateNotificationButton(state.nativePermission,false);
+    if(showResult){
+      alert(state.nativePermission==='denied'
+        ? 'Notifications are blocked in iPhone Settings. Enable notifications for My Tasks and try again.'
+        : 'Notification permission was not granted.');
+    }
+    return false;
+  }
+
+  // Permission is already granted. Ensure OneSignal creates/enables the actual push subscription.
+  OneSignal.User.PushSubscription.optIn();
+
+  for(let i=0;i<30;i++){
+    await wait(500);
+    state=await readPushState(OneSignal);
+    if(state.id && state.token && state.optedIn){
+      updateNotificationButton(state.permission,true);
+      console.log('OneSignal subscription ready', state);
+      if(showResult) alert('Notifications are enabled. This device is now subscribed in OneSignal.');
+      return true;
+    }
+  }
+
+  updateNotificationButton(state.permission,false);
+  console.error('OneSignal subscription incomplete', state);
+  if(showResult){
+    alert('iPhone notification permission is allowed, but OneSignal has not finished creating the push subscription. Open OneSignal → Audience → Subscriptions and check whether this device appears.');
+  }
+  return false;
 }
 
 function enablePushNotifications(){
+  const btn=document.getElementById('enableNotificationsBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Checking…'; }
+
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal){
     try{
-      const supported = await OneSignal.Notifications.isPushSupported();
+      const supported = OneSignal.Notifications.isPushSupported();
       if(!supported){
-        alert('Push notifications are not supported in this browser/device. On iPhone, open the app from the Home Screen and use iOS 16.4 or newer.');
+        if(btn){ btn.disabled=false; btn.textContent='🔔 Enable Notifications'; }
+        alert('Push notifications are not supported in this browser. On iPhone, use iOS 16.4 or newer and open My Tasks from the Home Screen icon.');
         return;
       }
-      if(!OneSignal.Notifications.permission){
-        await OneSignal.Notifications.requestPermission();
-      }
-      await ensureOneSignalSubscription(OneSignal,true);
+      await completePushSubscription(OneSignal,true);
     }catch(err){
-      console.error('Notification subscription error:',err);
-      alert('Could not complete the OneSignal subscription. Please reopen the app and try again.');
+      console.error('Notification setup error:',err);
+      if(btn){ btn.disabled=false; btn.textContent='🔔 Enable Notifications'; }
+      alert('Notification setup failed: '+(err && err.message ? err.message : String(err)));
     }
   });
 }
 
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal){
-  oneSignalReady=true;
   try{
-    await ensureOneSignalSubscription(OneSignal,false);
+    const state=await readPushState(OneSignal);
+    updateNotificationButton(state.permission, !!(state.id && state.token && state.optedIn));
+
+    OneSignal.Notifications.addEventListener('permissionChange', async function(){
+      const s=await readPushState(OneSignal);
+      updateNotificationButton(s.permission, !!(s.id && s.token && s.optedIn));
+    });
+
+    OneSignal.User.PushSubscription.addEventListener('change', async function(event){
+      const s=await readPushState(OneSignal);
+      updateNotificationButton(s.permission, !!(s.id && s.token && s.optedIn));
+      console.log('OneSignal subscription changed', event, s);
+    });
   }catch(err){
-    console.error('OneSignal auto-subscribe check failed:',err);
+    console.error('OneSignal state check failed:',err);
   }
-  OneSignal.Notifications.addEventListener('permissionChange', async function(permission){
-    if(permission){
-      try{ await ensureOneSignalSubscription(OneSignal,false); }catch(err){ console.error(err); }
-    }else{
-      updateNotificationButton(permission,false);
-    }
-  });
-  OneSignal.User.PushSubscription.addEventListener('change', function(event){
-    const c=event.current || {};
-    updateNotificationButton(OneSignal.Notifications.permission, !!(c.id && c.optedIn));
-    console.log('OneSignal subscription changed', c);
-  });
 });
 
 const todayISO=()=>{const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10)};
