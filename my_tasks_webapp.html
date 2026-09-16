@@ -16,13 +16,13 @@
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
-      const workerUrl = new URL('./push/onesignal/OneSignalSDKWorker.js', window.location.href);
-      const workerScopeUrl = new URL('./push/onesignal/', window.location.href);
+      const oneSignalWorkerPath = "My-Task/push/onesignal/OneSignalSDKWorker.js";
+      const oneSignalWorkerScope = "/My-Task/push/onesignal/";
       try {
         await OneSignal.init({
           appId: "73708780-d0d6-49c0-8e8c-debed904066d",
-          serviceWorkerPath: workerUrl.pathname,
-          serviceWorkerParam: { scope: workerScopeUrl.pathname },
+          serviceWorkerPath: oneSignalWorkerPath,
+          serviceWorkerParam: { scope: oneSignalWorkerScope },
           autoResubscribe: true
         });
         console.log('OneSignal initialized');
@@ -42,7 +42,7 @@
     body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
     .app{max-width:1200px;margin:0 auto;padding:22px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.notify-btn{background:#fff;border:1px solid var(--line);color:var(--text)}.notify-btn.enabled{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
-    .title-wrap h1{margin:0;font-size:30px}.title-wrap p{margin:4px 0 0;color:var(--muted)}
+    .title-wrap h1{margin:0;font-size:38px;line-height:1}.title-wrap p{display:none}
     .btn{border:none;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer}
     .btn-primary{background:var(--primary);color:#fff}.btn-light{background:#fff;border:1px solid var(--line);color:var(--text)}
     .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
@@ -75,23 +75,37 @@
     .completed-card{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
     .completed-card .left{min-width:0}.completed-card .task-title{text-decoration:line-through;color:#4b5563}
     .mobile-cards{display:none;padding:12px}
-    .task-card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:#fff}
-    .task-card .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.task-card .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.task-card .dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:13px}.task-card .dates div{background:#f9fafb;padding:9px;border-radius:10px}.task-card .card-actions{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
+    .task-card{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:#fff;overflow:hidden;transition:box-shadow .18s ease}
+    .task-card.open{box-shadow:0 8px 24px rgba(17,24,39,.08)}
+    .task-summary{padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .task-card .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.task-card .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+    .task-details{display:none;border-top:1px solid var(--line);padding:14px}.task-card.open .task-details{display:block}
+    .task-card .dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}.task-card .dates div{background:#f9fafb;padding:9px;border-radius:10px}.task-card .card-actions{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
     dialog{border:none;border-radius:18px;padding:0;max-width:640px;width:calc(100% - 28px);box-shadow:0 24px 80px rgba(0,0,0,.25)}
     dialog::backdrop{background:rgba(17,24,39,.55)}
     .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
     .modal-head h3{margin:0}.modal-body{padding:18px 20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:13px;font-weight:800}.field input,.field select,.field textarea{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px 11px;font:inherit}.field textarea{min-height:84px;resize:vertical}
     .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid var(--line)}
     .hint{font-size:12px;color:var(--muted);margin-top:8px}.danger{color:var(--red)}
-    @media(max-width:850px){.topbar{align-items:flex-start}.top-actions{justify-content:flex-end}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:24px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+    .splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+    .splash-box{text-align:center;min-width:220px}.splash-logo{width:92px;height:92px;border-radius:22px;box-shadow:0 10px 28px rgba(17,24,39,.12)}.splash-title{font-size:30px;font-weight:800;margin-top:16px}.splash-status{margin-top:8px;color:var(--muted);font-size:15px}.spinner{width:30px;height:30px;border:3px solid #d1d5db;border-top-color:var(--primary);border-radius:50%;margin:18px auto 0;animation:spin .8s linear infinite}.retry-btn{display:none;margin:18px auto 0}.splash.failed .spinner{display:none}.splash.failed .retry-btn{display:inline-flex}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:850px){.topbar{align-items:center}.top-actions{justify-content:flex-end;flex-wrap:nowrap}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:34px}.top-actions .btn-primary{padding:12px 15px;white-space:nowrap}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
   </style>
 </head>
 <body>
+<div id="syncSplash" class="splash">
+  <div class="splash-box">
+    <img src="icon-192.png" alt="My Tasks" class="splash-logo" />
+    <div class="splash-title">My Tasks</div>
+    <div id="splashStatus" class="splash-status">Syncing your tasks…</div>
+    <div class="spinner"></div>
+    <button id="retrySyncBtn" class="btn btn-primary retry-btn" type="button" onclick="retryInitialSync()">Retry</button>
+  </div>
+</div>
 <div class="app">
   <div class="topbar">
     <div class="title-wrap">
       <h1>My Tasks</h1>
-      <p>Record, track and complete your tasks on time. <span id="syncState" style="font-size:12px;margin-left:6px">Connecting…</span></p>
     </div>
     <div class="top-actions">
       <button id="enableNotificationsBtn" class="btn notify-btn" type="button" onclick="enablePushNotifications()">🔔 Enable Notifications</button>
@@ -147,7 +161,7 @@
         <div class="field"><label>Deadline time</label><input type="time" id="taskDeadlineTime" /></div>
         
       </div>
-      <div class="hint">Tasks sync to your Supabase backend. Push notifications can be connected next.</div>
+      
     </div>
     <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeTaskModal()">Cancel</button><button type="submit" class="btn btn-primary">Save Task</button></div>
   </form>
@@ -162,6 +176,7 @@ let oneSignalReady=false;
 let tasks=[];
 let currentFilter='all';
 let allTaskSort='newest';
+let expandedTaskId=null;
 
 
 function updateNotificationButton(permission, subscribed){
@@ -332,27 +347,44 @@ function taskToRow(t){
   };
 }
 function cacheTasks(){localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks))}
-function setSyncMessage(message,isError=false){
-  const el=document.getElementById('syncState');
-  if(!el)return;
-  el.textContent=message;
-  el.style.color=isError?'#dc2626':'#6b7280';
+function setSyncMessage(message,isError=false){}
+function showSplashLoading(message='Syncing your tasks…'){
+  const splash=document.getElementById('syncSplash');
+  const status=document.getElementById('splashStatus');
+  if(!splash)return;
+  splash.classList.remove('failed');
+  splash.style.display='flex';
+  if(status)status.textContent=message;
+}
+function showSplashError(message='Unable to sync. Check your internet connection and try again.'){
+  const splash=document.getElementById('syncSplash');
+  const status=document.getElementById('splashStatus');
+  if(!splash)return;
+  splash.classList.add('failed');
+  splash.style.display='flex';
+  if(status)status.textContent=message;
+}
+function hideSplash(){
+  const splash=document.getElementById('syncSplash');
+  if(splash)splash.style.display='none';
 }
 async function loadTasks(){
-  setSyncMessage('Syncing…');
+  showSplashLoading();
   try{
-    const res=await fetch(`${TASKS_ENDPOINT}?select=*&order=created_at.desc`,{headers:apiHeaders()});
+    const res=await fetch(`${TASKS_ENDPOINT}?select=*&order=created_at.desc`,{headers:apiHeaders(),cache:'no-store'});
     if(!res.ok)throw new Error(await res.text());
     tasks=(await res.json()).map(rowToTask);
     cacheTasks();
-    setSyncMessage('Synced');
+    render();
+    hideSplash();
+    return true;
   }catch(err){
     console.error('Supabase load error:',err);
-    tasks=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-    setSyncMessage('Offline / backend access failed',true);
+    showSplashError();
+    return false;
   }
-  render();
 }
+async function retryInitialSync(){ await loadTasks(); }
 async function insertTask(t){
   const res=await fetch(TASKS_ENDPOINT,{method:'POST',headers:apiHeaders({'Prefer':'return=representation'}),body:JSON.stringify(taskToRow(t))});
   if(!res.ok)throw new Error(await res.text());
@@ -407,17 +439,28 @@ function render(){
       <td>${fmt(t.start)}</td><td>${fmt(t.reminderDate)}${t.reminderTime?' '+t.reminderTime:''}</td><td>${fmt(t.deadline)}</td><td class="${due.cls}">${due.text}</td>
       <td><div class="actions"><button class="icon-btn" onclick="editTask('${t.id}')">✎</button><button class="icon-btn" onclick="deleteTask('${t.id}')">🗑</button></div></td>
     </tr>`);
-    mob.insertAdjacentHTML('beforeend',`<div class="task-card">
-      <div class="row"><div><div class="task-title">${esc(t.name)}</div><div class="task-note">${esc(t.notes||'')}</div></div><div class="${due.cls}">${due.text}</div></div>
-      <div class="meta"><span class="badge ${typeClass(t.type)}">${esc(t.type)}</span><span class="badge ${prioClass(t.priority)}">${esc(t.priority)}</span></div>
-      <div class="dates"><div><strong>Since</strong><br>${fmt(t.start)}</div><div><strong>Reminder</strong><br>${fmt(t.reminderDate)}${t.reminderTime?' '+t.reminderTime:''}</div><div><strong>Deadline</strong><br>${fmt(t.deadline)}</div><div><strong>Status</strong><br>${esc(t.status)}</div></div>
-      <div class="card-actions"><select class="status" onchange="changeStatus('${t.id}',this.value)">${['Pending','In Progress','Postponed','Redo','Completed','Cancelled'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><div><button class="icon-btn" onclick="editTask('${t.id}')">✎</button> <button class="icon-btn" onclick="deleteTask('${t.id}')">🗑</button></div></div>
+    const isOpen=expandedTaskId===t.id;
+    mob.insertAdjacentHTML('beforeend',`<div class="task-card ${isOpen?'open':''}" data-task-id="${t.id}">
+      <div class="task-summary" onclick="toggleTaskDetails('${t.id}')">
+        <div class="row"><div><div class="task-title">${esc(t.name)}</div></div><div class="${due.cls}">${due.text}</div></div>
+        <div class="meta"><span class="badge ${typeClass(t.type)}">${esc(t.type)}</span><span class="badge ${prioClass(t.priority)}">${esc(t.priority)}</span></div>
+      </div>
+      <div class="task-details">
+        ${t.notes?`<div class="task-note" style="max-width:none;white-space:normal;margin:0 0 10px">${esc(t.notes)}</div>`:''}
+        <div class="dates"><div><strong>Since</strong><br>${fmt(t.start)}</div><div><strong>Reminder</strong><br>${fmt(t.reminderDate)}${t.reminderTime?' '+t.reminderTime:''}</div><div><strong>Deadline</strong><br>${fmt(t.deadline)}${t.deadlineTime?' '+t.deadlineTime:''}</div><div><strong>Status</strong><br>${esc(t.status)}</div></div>
+        <div class="card-actions"><select class="status" onclick="event.stopPropagation()" onchange="changeStatus('${t.id}',this.value)">${['Pending','In Progress','Postponed','Redo','Completed','Cancelled'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><div><button class="icon-btn" onclick="event.stopPropagation();editTask('${t.id}')">✎</button> <button class="icon-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑</button></div></div>
+      </div>
     </div>`);
   });
 
   const cl=document.getElementById('completedList'); cl.innerHTML='';
   if(!completed.length){cl.innerHTML='<div class="empty">No completed tasks yet.</div>'}
   completed.sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||'')).forEach(t=>cl.insertAdjacentHTML('beforeend',`<div class="completed-card"><div class="left"><div class="task-title">${esc(t.name)}</div><div class="task-note">${esc(t.type)} · ${t.status}${t.completedAt?' · '+new Date(t.completedAt).toLocaleString():''}</div></div><div class="actions"><button class="icon-btn" onclick="editTask('${t.id}')">✎</button><button class="icon-btn" onclick="deleteTask('${t.id}')">🗑</button></div></div>`));
+}
+
+function toggleTaskDetails(id){
+  expandedTaskId = expandedTaskId===id ? null : id;
+  render();
 }
 
 function openTaskModal(){
