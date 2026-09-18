@@ -92,6 +92,29 @@
     .hint{font-size:12px;color:var(--muted);margin-top:8px}.danger{color:var(--red)}
     .splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
     .splash-box{text-align:center;min-width:220px}.splash-logo{width:92px;height:92px;border-radius:22px;box-shadow:0 10px 28px rgba(17,24,39,.12)}.splash-title{font-size:30px;font-weight:800;margin-top:16px}.splash-status{margin-top:8px;color:var(--muted);font-size:15px}.spinner{width:30px;height:30px;border:3px solid #d1d5db;border-top-color:var(--primary);border-radius:50%;margin:18px auto 0;animation:spin .8s linear infinite}.retry-btn{display:none;margin:18px auto 0}.splash.failed .spinner{display:none}.splash.failed .retry-btn{display:inline-flex}@keyframes spin{to{transform:rotate(360deg)}}
+    .settings-btn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:20px;background:#fff;border:1px solid var(--line);color:var(--text)}
+    .settings-page{position:fixed;inset:0;z-index:8000;background:var(--bg);color:var(--text);overflow-y:auto;display:none;overscroll-behavior:contain}
+    .settings-page.open{display:block}
+    .settings-shell{max-width:760px;margin:0 auto;padding:18px 18px 40px}
+    .settings-top{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:sticky;top:0;background:var(--bg);padding:8px 0 12px;z-index:2}
+    .settings-top h2{margin:0;font-size:30px}.back-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:22px;cursor:pointer}
+    .settings-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+    .settings-card h3{margin:0;padding:16px 18px 8px;font-size:17px}.settings-note{padding:0 18px 14px;color:var(--muted);font-size:13px}
+    .setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;border-top:1px solid var(--line)}
+    .setting-row:first-of-type{border-top:none}.setting-copy{min-width:0}.setting-title{font-weight:800}.setting-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.35}
+    .switch{position:relative;display:inline-block;width:50px;height:30px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.2s}.slider:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:.2s}.switch input:checked + .slider{background:var(--accent)}.switch input:checked + .slider:before{transform:translateX(20px)}
+    .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 18px 18px}.theme-option{border:2px solid transparent;background:transparent;border-radius:14px;padding:0;cursor:pointer;text-align:left}.theme-option.active{border-color:var(--accent)}.theme-swatch{height:72px;border-radius:12px;border:1px solid rgba(0,0,0,.08);padding:8px;display:flex;align-items:flex-end}.theme-name{font-size:12px;font-weight:800;margin-top:6px;text-align:center;color:var(--text)}
+    .sw-light{background:linear-gradient(135deg,#f5f7fb 0 55%,#fff 55%)}.sw-dark{background:linear-gradient(135deg,#111827 0 55%,#1f2937 55%)}.sw-slate{background:linear-gradient(135deg,#e2e8f0 0 55%,#334155 55%)}.sw-ocean{background:linear-gradient(135deg,#ecfeff 0 55%,#0369a1 55%)}.sw-forest{background:linear-gradient(135deg,#f0fdf4 0 55%,#166534 55%)}.sw-warm{background:linear-gradient(135deg,#fff7ed 0 55%,#9a3412 55%)}
+    .wallpaper-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 18px 10px}.wallpaper-option{height:76px;border-radius:12px;border:2px solid transparent;cursor:pointer;overflow:hidden;position:relative}.wallpaper-option.active{border-color:var(--accent)}.wallpaper-option span{position:absolute;left:7px;bottom:6px;background:rgba(255,255,255,.85);color:#111827;border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800}.wp-none{background:var(--bg)}.wp-aurora{background:radial-gradient(circle at 10% 20%,rgba(56,189,248,.35),transparent 28%),radial-gradient(circle at 85% 18%,rgba(167,139,250,.32),transparent 30%),linear-gradient(135deg,#f8fafc,#eef2ff)}.wp-mist{background:radial-gradient(circle at 20% 20%,rgba(34,197,94,.18),transparent 24%),radial-gradient(circle at 80% 70%,rgba(14,165,233,.20),transparent 28%),linear-gradient(135deg,#f8fafc,#f0fdfa)}
+    .custom-wallpaper-row{padding:4px 18px 18px;display:flex;gap:8px;flex-wrap:wrap}.custom-wallpaper-row input{display:none}
+    .settings-status{font-size:12px;color:var(--muted);padding:0 18px 14px}.settings-status.error{color:var(--red)}
+    body.has-wallpaper{background-attachment:fixed;background-size:cover;background-position:center}.has-wallpaper .app{background:transparent}
+    [data-theme="dark"]{--bg:#0b1220;--card:#111827;--text:#f3f4f6;--muted:#9ca3af;--line:#263244;--primary:#f3f4f6;--accent:#60a5fa;--shadow:0 8px 30px rgba(0,0,0,.24)}
+    [data-theme="dark"] .btn-primary,[data-theme="dark"] .chip.active{background:#f3f4f6;color:#111827}[data-theme="dark"] th,[data-theme="dark"] tbody tr:hover,[data-theme="dark"] .task-card .dates div{background:#0f172a}[data-theme="dark"] .task-card,[data-theme="dark"] .modal-foot,[data-theme="dark"] .notify-btn,[data-theme="dark"] .btn-light,[data-theme="dark"] .chip,[data-theme="dark"] select.status,[data-theme="dark"] .icon-btn{background:#111827;color:#f3f4f6}
+    [data-theme="slate"]{--bg:#e2e8f0;--card:#f8fafc;--text:#0f172a;--muted:#64748b;--line:#cbd5e1;--primary:#334155;--accent:#475569}
+    [data-theme="ocean"]{--bg:#ecfeff;--card:#ffffff;--text:#0c4a6e;--muted:#527587;--line:#bae6fd;--primary:#0369a1;--accent:#0284c7}
+    [data-theme="forest"]{--bg:#f0fdf4;--card:#ffffff;--text:#14532d;--muted:#5f7667;--line:#bbf7d0;--primary:#166534;--accent:#16a34a}
+    [data-theme="warm"]{--bg:#fff7ed;--card:#fffdf9;--text:#431407;--muted:#8b6b5a;--line:#fed7aa;--primary:#9a3412;--accent:#ea580c}
     @media(max-width:850px){.topbar{align-items:center}.top-actions{justify-content:flex-end;flex-wrap:nowrap}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:34px}.top-actions .btn-primary{padding:12px 15px;white-space:nowrap}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
   </style>
 </head>
@@ -112,6 +135,7 @@
     </div>
     <div class="top-actions">
       <button id="enableNotificationsBtn" class="btn notify-btn" type="button" onclick="enablePushNotifications()">🔔 Enable Notifications</button>
+      <button class="btn settings-btn" type="button" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
       <button class="btn btn-primary" onclick="openTaskModal()">＋ Add Task</button>
     </div>
   </div>
@@ -146,6 +170,54 @@
   </section>
 </div>
 
+<div id="settingsPage" class="settings-page" aria-hidden="true">
+  <div class="settings-shell">
+    <div class="settings-top"><button class="back-btn" type="button" onclick="closeSettings()">‹</button><h2>Settings</h2></div>
+
+    <section class="settings-card">
+      <h3>Notifications</h3>
+      <div class="settings-note">Choose which automatic task notifications you want to receive.</div>
+      <div class="setting-row">
+        <div class="setting-copy"><div class="setting-title">Task reminder notifications</div><div class="setting-sub">Notification at the reminder date and time you set for a task.</div></div>
+        <label class="switch"><input id="settingReminderNotifications" type="checkbox" checked onchange="saveNotificationSettings()"><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-copy"><div class="setting-title">Due Today notifications</div><div class="setting-sub">Notification at 8:00 AM on the deadline date.</div></div>
+        <label class="switch"><input id="settingDueTodayNotifications" type="checkbox" checked onchange="saveNotificationSettings()"><span class="slider"></span></label>
+      </div>
+      <div id="settingsSyncStatus" class="settings-status">Loading notification settings…</div>
+    </section>
+
+    <section class="settings-card">
+      <h3>Theme</h3>
+      <div class="settings-note">Changes apply immediately on this device.</div>
+      <div class="theme-grid">
+        <button class="theme-option" data-theme-option="light" onclick="setTheme('light')"><div class="theme-swatch sw-light"></div><div class="theme-name">Light</div></button>
+        <button class="theme-option" data-theme-option="dark" onclick="setTheme('dark')"><div class="theme-swatch sw-dark"></div><div class="theme-name">Dark</div></button>
+        <button class="theme-option" data-theme-option="slate" onclick="setTheme('slate')"><div class="theme-swatch sw-slate"></div><div class="theme-name">Slate</div></button>
+        <button class="theme-option" data-theme-option="ocean" onclick="setTheme('ocean')"><div class="theme-swatch sw-ocean"></div><div class="theme-name">Ocean</div></button>
+        <button class="theme-option" data-theme-option="forest" onclick="setTheme('forest')"><div class="theme-swatch sw-forest"></div><div class="theme-name">Forest</div></button>
+        <button class="theme-option" data-theme-option="warm" onclick="setTheme('warm')"><div class="theme-swatch sw-warm"></div><div class="theme-name">Warm</div></button>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <h3>Background</h3>
+      <div class="settings-note">Use a subtle built-in background or choose your own image.</div>
+      <div class="wallpaper-grid">
+        <button class="wallpaper-option wp-none" data-wallpaper-option="none" onclick="setWallpaper('none')"><span>None</span></button>
+        <button class="wallpaper-option wp-aurora" data-wallpaper-option="aurora" onclick="setWallpaper('aurora')"><span>Aurora</span></button>
+        <button class="wallpaper-option wp-mist" data-wallpaper-option="mist" onclick="setWallpaper('mist')"><span>Mist</span></button>
+      </div>
+      <div class="custom-wallpaper-row">
+        <label class="btn btn-light" for="customWallpaperInput">Choose custom wallpaper</label>
+        <input id="customWallpaperInput" type="file" accept="image/*" onchange="handleCustomWallpaper(event)">
+        <button class="btn btn-light" type="button" onclick="clearCustomWallpaper()">Remove custom</button>
+      </div>
+    </section>
+  </div>
+</div>
+
 <dialog id="taskDialog">
   <form id="taskForm" method="dialog">
     <div class="modal-head"><h3 id="modalTitle">Add Task</h3><button type="button" class="icon-btn" onclick="closeTaskModal()">✕</button></div>
@@ -174,6 +246,8 @@
 const SUPABASE_URL='https://hegddozeaqdztyyhsazr.supabase.co';
 const SUPABASE_KEY='sb_publishable_zss60vbps4U1fbVbqGT5IQ_oaxsbaiy';
 const TASKS_ENDPOINT=`${SUPABASE_URL}/rest/v1/tasks`;
+const SETTINGS_ENDPOINT=`${SUPABASE_URL}/rest/v1/app_settings`;
+const APPEARANCE_KEY='mytasks_appearance_v1';
 const STORAGE_KEY='mytasks_v1'; // kept only as an offline cache
 let oneSignalReady=false;
 let tasks=[];
@@ -297,6 +371,104 @@ OneSignalDeferred.push(async function(OneSignal){
   }
 });
 
+let appSettings={reminder_notifications:true,due_today_notifications:true};
+
+function openSettings(){
+  document.getElementById('settingsPage').classList.add('open');
+  document.getElementById('settingsPage').setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  refreshSettingsUI();
+}
+function closeSettings(){
+  document.getElementById('settingsPage').classList.remove('open');
+  document.getElementById('settingsPage').setAttribute('aria-hidden','true');
+  document.body.classList.remove('modal-open');
+}
+function refreshSettingsUI(){
+  const r=document.getElementById('settingReminderNotifications');
+  const d=document.getElementById('settingDueTodayNotifications');
+  if(r)r.checked=appSettings.reminder_notifications!==false;
+  if(d)d.checked=appSettings.due_today_notifications!==false;
+  const a=readAppearance();
+  document.querySelectorAll('[data-theme-option]').forEach(b=>b.classList.toggle('active',b.dataset.themeOption===a.theme));
+  document.querySelectorAll('[data-wallpaper-option]').forEach(b=>b.classList.toggle('active',b.dataset.wallpaperOption===a.wallpaper));
+}
+async function loadAppSettings(){
+  const status=document.getElementById('settingsSyncStatus');
+  try{
+    const res=await fetch(`${SETTINGS_ENDPOINT}?id=eq.default&select=*`,{headers:apiHeaders(),cache:'no-store'});
+    if(!res.ok)throw new Error(await res.text());
+    const rows=await res.json();
+    if(rows[0]) appSettings={...appSettings,...rows[0]};
+    if(status){status.textContent='Notification settings synced.';status.classList.remove('error')}
+  }catch(err){
+    console.warn('Settings backend unavailable:',err);
+    if(status){status.textContent='Notification settings table is not connected yet. Theme settings still work on this device.';status.classList.add('error')}
+  }
+  refreshSettingsUI();
+}
+async function saveNotificationSettings(){
+  const reminder=document.getElementById('settingReminderNotifications').checked;
+  const dueToday=document.getElementById('settingDueTodayNotifications').checked;
+  const old={...appSettings};
+  appSettings.reminder_notifications=reminder;
+  appSettings.due_today_notifications=dueToday;
+  const status=document.getElementById('settingsSyncStatus');
+  if(status){status.textContent='Saving…';status.classList.remove('error')}
+  try{
+    const res=await fetch(`${SETTINGS_ENDPOINT}?id=eq.default`,{
+      method:'PATCH',headers:apiHeaders({'Prefer':'return=representation'}),
+      body:JSON.stringify({reminder_notifications:reminder,due_today_notifications:dueToday,updated_at:new Date().toISOString()})
+    });
+    if(!res.ok)throw new Error(await res.text());
+    if(status)status.textContent='Notification settings saved.';
+  }catch(err){
+    appSettings=old;refreshSettingsUI();
+    console.error('Settings save error:',err);
+    if(status){status.textContent='Could not save notification settings to Supabase.';status.classList.add('error')}
+  }
+}
+function readAppearance(){
+  try{return {...{theme:'light',wallpaper:'none',customWallpaper:''},...JSON.parse(localStorage.getItem(APPEARANCE_KEY)||'{}')}}catch{return {theme:'light',wallpaper:'none',customWallpaper:''}}
+}
+function saveAppearance(a){localStorage.setItem(APPEARANCE_KEY,JSON.stringify(a));applyAppearance(a);refreshSettingsUI()}
+function setTheme(theme){const a=readAppearance();a.theme=theme;saveAppearance(a)}
+function setWallpaper(wallpaper){const a=readAppearance();a.wallpaper=wallpaper;saveAppearance(a)}
+function applyAppearance(a=readAppearance()){
+  document.documentElement.setAttribute('data-theme',a.theme||'light');
+  document.body.classList.remove('has-wallpaper');
+  document.body.style.backgroundImage='';
+  const wp=a.wallpaper||'none';
+  if(wp==='aurora'){
+    document.body.classList.add('has-wallpaper');
+    document.body.style.backgroundImage='radial-gradient(circle at 10% 20%,rgba(56,189,248,.28),transparent 28%),radial-gradient(circle at 85% 18%,rgba(167,139,250,.25),transparent 30%),linear-gradient(135deg,var(--bg),#eef2ff)';
+  }else if(wp==='mist'){
+    document.body.classList.add('has-wallpaper');
+    document.body.style.backgroundImage='radial-gradient(circle at 20% 20%,rgba(34,197,94,.15),transparent 24%),radial-gradient(circle at 80% 70%,rgba(14,165,233,.17),transparent 28%),linear-gradient(135deg,var(--bg),#f0fdfa)';
+  }else if(wp==='custom' && a.customWallpaper){
+    document.body.classList.add('has-wallpaper');
+    document.body.style.backgroundImage=`linear-gradient(rgba(245,247,251,.72),rgba(245,247,251,.72)),url(${a.customWallpaper})`;
+  }
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()||'#111827');
+}
+function handleCustomWallpaper(event){
+  const file=event.target.files&&event.target.files[0];if(!file)return;
+  if(!file.type.startsWith('image/'))return alert('Please choose an image file.');
+  const img=new Image();
+  img.onload=()=>{
+    const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const data=c.toDataURL('image/jpeg',.78);
+    const a=readAppearance();a.customWallpaper=data;a.wallpaper='custom';
+    try{saveAppearance(a)}catch(e){alert('This image is too large to save on this device. Please choose a smaller image.')}
+  };
+  img.src=URL.createObjectURL(file);
+}
+function clearCustomWallpaper(){const a=readAppearance();a.customWallpaper='';if(a.wallpaper==='custom')a.wallpaper='none';saveAppearance(a);document.getElementById('customWallpaperInput').value=''}
+applyAppearance();
+
 const todayISO=()=>{const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10)};
 const fmt=(s)=> s ? new Date(s+'T00:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -330,7 +502,9 @@ function rowToTask(r){
     deadline:r.deadline_date||'',
     deadlineTime:r.deadline_time ? String(r.deadline_time).slice(0,5) : '',
     createdAt:r.created_at||'',
-    completedAt:r.completed_at||''
+    completedAt:r.completed_at||'',
+    reminderSent:r.reminder_sent===true,
+    dueTodaySent:r.due_today_sent===true
   };
 }
 function taskToRow(t){
@@ -346,7 +520,9 @@ function taskToRow(t){
     reminder_time:t.reminderTime||null,
     deadline_date:t.deadline||null,
     deadline_time:t.deadlineTime||null,
-    completed_at:t.completedAt||null
+    completed_at:t.completedAt||null,
+    reminder_sent:t.reminderSent===true,
+    due_today_sent:t.dueTodaySent===true
   };
 }
 function cacheTasks(){localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks))}
@@ -527,7 +703,9 @@ document.getElementById('taskForm').addEventListener('submit',async e=>{
   const id=document.getElementById('taskId').value||crypto.randomUUID();
   const existing=tasks.find(t=>t.id===id);
   const status=document.getElementById('taskStatus').value;
-  const obj={id,name:document.getElementById('taskName').value.trim(),notes:document.getElementById('taskNotes').value.trim(),type:document.getElementById('taskType').value,priority:document.getElementById('taskPriority').value,status,start:document.getElementById('taskStart').value,reminderDate:document.getElementById('taskReminderDate').value,reminderTime:document.getElementById('taskReminderTime').value,deadline:document.getElementById('taskDeadline').value,deadlineTime:document.getElementById('taskDeadlineTime').value,createdAt:existing?.createdAt||new Date().toISOString(),completedAt:existing?.completedAt||''};
+  const obj={id,name:document.getElementById('taskName').value.trim(),notes:document.getElementById('taskNotes').value.trim(),type:document.getElementById('taskType').value,priority:document.getElementById('taskPriority').value,status,start:document.getElementById('taskStart').value,reminderDate:document.getElementById('taskReminderDate').value,reminderTime:document.getElementById('taskReminderTime').value,deadline:document.getElementById('taskDeadline').value,deadlineTime:document.getElementById('taskDeadlineTime').value,createdAt:existing?.createdAt||new Date().toISOString(),completedAt:existing?.completedAt||'',reminderSent:existing?.reminderSent||false,dueTodaySent:existing?.dueTodaySent||false};
+  if(!existing || existing.reminderDate!==obj.reminderDate || existing.reminderTime!==obj.reminderTime)obj.reminderSent=false;
+  if(!existing || existing.deadline!==obj.deadline || existing.deadlineTime!==obj.deadlineTime)obj.dueTodaySent=false;
   if(status==='Completed'&&!obj.completedAt)obj.completedAt=new Date().toISOString();
   if(status!=='Completed')obj.completedAt='';
   try{
@@ -544,6 +722,7 @@ document.getElementById('taskForm').addEventListener('submit',async e=>{
 document.getElementById('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]'); if(!b)return; currentFilter=b.dataset.filter; document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===b)); render()});
 
 loadTasks();
+loadAppSettings();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
 </script>
 </body>
