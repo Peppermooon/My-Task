@@ -121,6 +121,20 @@
     [data-theme="forest"]{--bg:#f0fdf4;--card:#ffffff;--text:#14532d;--muted:#5f7667;--line:#bbf7d0;--primary:#166534;--accent:#16a34a}
     [data-theme="warm"]{--bg:#fff7ed;--card:#fffdf9;--text:#431407;--muted:#8b6b5a;--line:#fed7aa;--primary:#9a3412;--accent:#ea580c}
 
+    /* Account card: centered text with safe wrapping for long email addresses. */
+    .account-heading,.account-description,.account-email{text-align:center}
+    .account-heading{padding:18px 16px 8px!important}
+    .account-description{padding:0 18px 9px}
+    .account-email{display:block;width:100%;min-width:0;padding:0 18px 4px;overflow-wrap:anywhere;word-break:break-word;line-height:1.45}
+    .account-actions{padding:0 18px 18px}
+    .theme-option{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    .theme-option:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    /* Form controls and panel background follow the chosen theme. */
+    .settings-page,.settings-top,.settings-card{color:var(--text)}
+    [data-theme="dark"] .settings-page,[data-theme="dark"] .settings-top{background:var(--bg)}
+    [data-theme="dark"] .modal-foot,[data-theme="dark"] .field input,[data-theme="dark"] .field select,[data-theme="dark"] .field textarea{background:var(--card);color:var(--text);border-color:var(--line)}
+    [data-theme="dark"] .btn-light{background:var(--card);color:var(--text);border:1px solid var(--line)}
+    [data-theme="dark"] .task-card .task-details .dates div{background:#0f172a;color:var(--text)}
     .auth-page{position:fixed;inset:0;z-index:12000;background:linear-gradient(145deg,#f5f7fb,#eef2ff);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
     .auth-page.hidden{display:none}.auth-card{width:min(430px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:24px;box-shadow:0 24px 80px rgba(17,24,39,.16);padding:28px}.auth-brand{text-align:center;margin-bottom:22px}.auth-logo{width:74px;height:74px;border-radius:18px;box-shadow:0 8px 22px rgba(17,24,39,.12)}.auth-brand h1{font-size:30px;margin:13px 0 5px}.auth-brand p{margin:0;color:#6b7280}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:#f3f4f6;border-radius:12px;padding:4px;margin-bottom:18px}.auth-tab{border:0;background:transparent;border-radius:9px;padding:9px;font:inherit;font-weight:700;cursor:pointer;color:#6b7280}.auth-tab.active{background:#fff;color:#111827;box-shadow:0 2px 8px rgba(17,24,39,.08)}.auth-field{display:flex;flex-direction:column;gap:6px;margin:12px 0}.auth-field label{font-size:13px;font-weight:800}.auth-field input{width:100%;border:1px solid #d1d5db;border-radius:11px;padding:12px;font:inherit}.auth-submit,.google-btn{width:100%;margin-top:8px}.google-btn{display:flex;align-items:center;justify-content:center;gap:9px}.auth-or{display:flex;align-items:center;gap:10px;color:#9ca3af;font-size:12px;margin:17px 0}.auth-or:before,.auth-or:after{content:"";height:1px;background:#e5e7eb;flex:1}.auth-links{text-align:center;margin-top:14px}.auth-link{border:0;background:none;color:#2563eb;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.auth-message{min-height:20px;text-align:center;font-size:13px;margin-top:12px;color:#6b7280}.auth-message.error{color:#dc2626}.auth-message.success{color:#047857}.account-email{font-weight:800;overflow-wrap:anywhere}.account-actions{display:flex;gap:8px;margin-top:14px}.account-actions .btn{flex:1}
     @media(max-width:850px){.topbar{align-items:center}.top-actions{justify-content:flex-end;flex-wrap:nowrap}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:34px}.top-actions .btn-primary{padding:12px 15px;white-space:nowrap}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
@@ -206,8 +220,8 @@
     <div class="settings-top"><button class="back-btn" type="button" onclick="closeSettings()">‹</button><h2>Settings</h2></div>
 
     <section class="settings-card">
-      <h3>Account</h3>
-      <div class="settings-note">Signed in securely with Supabase Auth.</div>
+      <h3 class="account-heading">Your personal workspace</h3>
+      <div class="settings-note account-description">Your tasks, reminders, and settings are private to your account.</div>
       <div class="account-email" id="settingsAccountEmail">—</div>
       <div class="account-actions"><button class="btn btn-light" type="button" onclick="logoutUser()">Sign Out</button></div>
     </section>
@@ -587,10 +601,15 @@ async function saveNotificationSettings(){
     if(status)status.textContent='Notification settings saved.';
   }catch(err){appSettings=old;refreshSettingsUI();console.error(err);if(status){status.textContent='Could not save notification settings.';status.classList.add('error')}}
 }
+function appearanceStorageKey(){return currentUser ? `${APPEARANCE_KEY}_${currentUser.id}` : APPEARANCE_KEY;}
 function readAppearance(){
   try{return {...{theme:'light',wallpaper:'none',customWallpaper:''},...JSON.parse(localStorage.getItem(appearanceStorageKey())||'{}')}}catch{return {theme:'light',wallpaper:'none',customWallpaper:''}}
 }
-function saveAppearance(a){localStorage.setItem(appearanceStorageKey(),JSON.stringify(a));applyAppearance(a);refreshSettingsUI()}
+function saveAppearance(a){
+  try{localStorage.setItem(appearanceStorageKey(),JSON.stringify(a));}
+  catch(err){console.warn('Could not save appearance preferences on this device:',err);}
+  applyAppearance(a);refreshSettingsUI();
+}
 function setTheme(theme){const a=readAppearance();a.theme=theme;saveAppearance(a)}
 function setWallpaper(wallpaper){const a=readAppearance();a.wallpaper=wallpaper;saveAppearance(a)}
 function applyAppearance(a=readAppearance()){
