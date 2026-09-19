@@ -1,0 +1,115 @@
+MY TASKS v9 - AUTHENTICATION SETUP
+=================================
+
+IMPORTANT: Do the steps in this order. The security SQL intentionally removes the old public anonymous access.
+
+1) SUPABASE AUTH URLS
+---------------------
+Supabase Dashboard -> Authentication -> URL Configuration
+
+Site URL:
+https://peppermooon.github.io/My-Task/
+
+Redirect URLs: add
+https://peppermooon.github.io/My-Task/
+
+The app keeps the user signed in using Supabase's persisted browser session until they explicitly sign out.
+
+2) EMAIL/PASSWORD AUTH
+----------------------
+Supabase Dashboard -> Authentication -> Providers -> Email
+Enable Email provider and Email + Password sign-in.
+You can keep Confirm email enabled for public registration (recommended).
+
+3) GOOGLE AUTH
+--------------
+A. Google Auth Platform / Google Cloud Console:
+   - Create an OAuth Client ID -> Web application.
+   - Authorized JavaScript origin:
+     https://peppermooon.github.io
+   - Authorized redirect URI:
+     use the exact Callback URL shown on Supabase -> Authentication -> Providers -> Google.
+     For this project it will normally be:
+     https://hegddozeaqdztyyhsazr.supabase.co/auth/v1/callback
+
+B. Copy the Google Client ID and Client Secret into:
+   Supabase -> Authentication -> Providers -> Google
+   Enable Google and Save.
+
+4) SECURE THE DATABASE
+----------------------
+Supabase -> SQL Editor -> run the complete file:
+auth_security_setup.sql
+
+This:
+- adds user_id to tasks
+- removes old public/anon task policies
+- creates strict per-user RLS
+- creates private user_settings
+- revokes browser access to the old global app_settings table
+
+NOTE: Immediately after this, your old unauthenticated frontend will no longer be able to read tasks. That is intentional.
+
+5) DEPLOY THIS BUNDLE TO GITHUB
+--------------------------------
+Replace the current repository files with this bundle's web files.
+Wait for GitHub Pages to redeploy, then open:
+https://peppermooon.github.io/My-Task/
+
+You should now see Sign In / Create Account instead of the task dashboard.
+
+6) CREATE YOUR OWN ACCOUNT FIRST
+---------------------------------
+Use Create Account with email/password OR Continue with Google.
+After signing in, your task list will initially look empty because your existing legacy tasks do not yet have an owner.
+
+7) MIGRATE YOUR EXISTING TASKS + NOTIFICATION SETTINGS
+------------------------------------------------------
+Supabase -> Authentication -> Users
+Copy YOUR account's User UID.
+
+Open migrate_existing_data.sql.
+Replace BOTH occurrences of:
+YOUR_USER_UUID
+with your actual User UID.
+
+Run the edited SQL in Supabase SQL Editor.
+Then refresh My Tasks. Your old tasks should reappear under your account only.
+
+8) UPDATE THE REMINDER EDGE FUNCTION
+------------------------------------
+Supabase -> Edge Functions -> send-task-reminders -> Edit
+Replace all code with send-task-reminders.ts and Deploy.
+
+The function now sends OneSignal notifications using each Supabase User UUID as OneSignal's external_id instead of one fixed subscription ID.
+This allows multiple users and multiple devices per user.
+
+Your existing cron job can remain unchanged.
+
+9) ONESIGNAL
+------------
+No new OneSignal app is required.
+When a user signs in, the frontend calls OneSignal.login(<Supabase User UUID>).
+When the user signs out, it calls OneSignal.logout().
+
+Each signed-in user's subscribed devices are therefore attached to their own external_id.
+The Edge Function targets:
+include_aliases -> external_id -> user's Supabase UUID
+
+The old Supabase secret ONESIGNAL_SUBSCRIPTION_ID is no longer used by the new function. You may remove that secret after everything is confirmed working. Keep ONESIGNAL_APP_ID and ONESIGNAL_API_KEY.
+
+10) TEST
+--------
+A. Sign in as your account.
+B. Confirm your old tasks appear after migration.
+C. Add a new task. Confirm its user_id in Table Editor equals your Auth User UID.
+D. Sign out. The dashboard must disappear and tasks must not be accessible.
+E. Create a second test account. It should see an empty private task list and must not see your tasks.
+F. Enable notifications while signed into that account. In OneSignal Audience, the User should have external_id equal to the Supabase User UID.
+G. Test a reminder. The notification should go only to that user's linked device(s).
+
+SECURITY NOTES
+--------------
+- The Supabase publishable key remains in index.html. That is expected for a browser app. RLS is what protects the private rows.
+- Never put a service-role/secret key or OneSignal App API Key in GitHub/frontend code.
+- GitHub Pages itself is public, but task data is private behind Supabase Auth + RLS.

@@ -11,6 +11,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>My Tasks</title>
+  <!-- Supabase Auth / Database SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- OneSignal Web Push SDK -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
@@ -25,6 +27,9 @@
           serviceWorkerParam: { scope: oneSignalWorkerScope },
           autoResubscribe: true
         });
+        if (window.currentAuthUserId) {
+          await OneSignal.login(window.currentAuthUserId);
+        }
         console.log('OneSignal initialized');
       } catch (error) {
         console.error('OneSignal initialization failed:', error);
@@ -115,10 +120,36 @@
     [data-theme="ocean"]{--bg:#ecfeff;--card:#ffffff;--text:#0c4a6e;--muted:#527587;--line:#bae6fd;--primary:#0369a1;--accent:#0284c7}
     [data-theme="forest"]{--bg:#f0fdf4;--card:#ffffff;--text:#14532d;--muted:#5f7667;--line:#bbf7d0;--primary:#166534;--accent:#16a34a}
     [data-theme="warm"]{--bg:#fff7ed;--card:#fffdf9;--text:#431407;--muted:#8b6b5a;--line:#fed7aa;--primary:#9a3412;--accent:#ea580c}
+
+    .auth-page{position:fixed;inset:0;z-index:12000;background:linear-gradient(145deg,#f5f7fb,#eef2ff);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+    .auth-page.hidden{display:none}.auth-card{width:min(430px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:24px;box-shadow:0 24px 80px rgba(17,24,39,.16);padding:28px}.auth-brand{text-align:center;margin-bottom:22px}.auth-logo{width:74px;height:74px;border-radius:18px;box-shadow:0 8px 22px rgba(17,24,39,.12)}.auth-brand h1{font-size:30px;margin:13px 0 5px}.auth-brand p{margin:0;color:#6b7280}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:#f3f4f6;border-radius:12px;padding:4px;margin-bottom:18px}.auth-tab{border:0;background:transparent;border-radius:9px;padding:9px;font:inherit;font-weight:700;cursor:pointer;color:#6b7280}.auth-tab.active{background:#fff;color:#111827;box-shadow:0 2px 8px rgba(17,24,39,.08)}.auth-field{display:flex;flex-direction:column;gap:6px;margin:12px 0}.auth-field label{font-size:13px;font-weight:800}.auth-field input{width:100%;border:1px solid #d1d5db;border-radius:11px;padding:12px;font:inherit}.auth-submit,.google-btn{width:100%;margin-top:8px}.google-btn{display:flex;align-items:center;justify-content:center;gap:9px}.auth-or{display:flex;align-items:center;gap:10px;color:#9ca3af;font-size:12px;margin:17px 0}.auth-or:before,.auth-or:after{content:"";height:1px;background:#e5e7eb;flex:1}.auth-links{text-align:center;margin-top:14px}.auth-link{border:0;background:none;color:#2563eb;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.auth-message{min-height:20px;text-align:center;font-size:13px;margin-top:12px;color:#6b7280}.auth-message.error{color:#dc2626}.auth-message.success{color:#047857}.account-email{font-weight:800;overflow-wrap:anywhere}.account-actions{display:flex;gap:8px;margin-top:14px}.account-actions .btn{flex:1}
     @media(max-width:850px){.topbar{align-items:center}.top-actions{justify-content:flex-end;flex-wrap:nowrap}.notify-btn{padding:10px 12px}.stats{grid-template-columns:repeat(2,1fr)}.desktop-table{display:none}.mobile-cards{display:block}.app{padding:14px}.title-wrap h1{font-size:34px}.top-actions .btn-primary{padding:12px 15px;white-space:nowrap}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
   </style>
 </head>
 <body>
+<div id="authPage" class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <img src="icon-192.png" alt="My Tasks" class="auth-logo" />
+      <h1>My Tasks</h1>
+      <p>Your private task workspace</p>
+    </div>
+    <div class="auth-tabs">
+      <button id="authSignInTab" class="auth-tab active" type="button" onclick="setAuthMode('signin')">Sign In</button>
+      <button id="authSignUpTab" class="auth-tab" type="button" onclick="setAuthMode('signup')">Create Account</button>
+    </div>
+    <form id="authForm" onsubmit="handleEmailAuth(event)">
+      <div class="auth-field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com" /></div>
+      <div class="auth-field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Minimum 6 characters" /></div>
+      <button id="authSubmitBtn" class="btn btn-primary auth-submit" type="submit">Sign In</button>
+    </form>
+    <div class="auth-or">OR</div>
+    <button class="btn btn-light google-btn" type="button" onclick="signInWithGoogle()"><span style="font-weight:900">G</span> Continue with Google</button>
+    <div class="auth-links"><button id="forgotPasswordBtn" class="auth-link" type="button" onclick="sendPasswordReset()">Forgot password?</button></div>
+    <div id="authMessage" class="auth-message"></div>
+  </div>
+</div>
+
 <div id="syncSplash" class="splash">
   <div class="splash-box">
     <img src="icon-192.png" alt="My Tasks" class="splash-logo" />
@@ -173,6 +204,13 @@
 <div id="settingsPage" class="settings-page" aria-hidden="true">
   <div class="settings-shell">
     <div class="settings-top"><button class="back-btn" type="button" onclick="closeSettings()">‹</button><h2>Settings</h2></div>
+
+    <section class="settings-card">
+      <h3>Account</h3>
+      <div class="settings-note">Signed in securely with Supabase Auth.</div>
+      <div class="account-email" id="settingsAccountEmail">—</div>
+      <div class="account-actions"><button class="btn btn-light" type="button" onclick="logoutUser()">Sign Out</button></div>
+    </section>
 
     <section class="settings-card">
       <h3>Notifications</h3>
@@ -245,16 +283,137 @@
 <script>
 const SUPABASE_URL='https://hegddozeaqdztyyhsazr.supabase.co';
 const SUPABASE_KEY='sb_publishable_zss60vbps4U1fbVbqGT5IQ_oaxsbaiy';
+const APP_URL='https://peppermooon.github.io/My-Task/';
 const TASKS_ENDPOINT=`${SUPABASE_URL}/rest/v1/tasks`;
-const SETTINGS_ENDPOINT=`${SUPABASE_URL}/rest/v1/app_settings`;
+const SETTINGS_ENDPOINT=`${SUPABASE_URL}/rest/v1/user_settings`;
 const APPEARANCE_KEY='mytasks_appearance_v1';
-const STORAGE_KEY='mytasks_v1'; // kept only as an offline cache
+const STORAGE_KEY='mytasks_v1'; // per-user offline cache only
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let currentSession=null;
+let currentUser=null;
+let authMode='signin';
+let lastLoadedUserId=null;
 let oneSignalReady=false;
 let tasks=[];
 let currentFilter='all';
 let allTaskSort='newest';
 let expandedTaskId=null;
 
+
+
+function setAuthMessage(message='',type=''){
+  const el=document.getElementById('authMessage'); if(!el)return;
+  el.textContent=message; el.className='auth-message'+(type?' '+type:'');
+}
+function setAuthMode(mode){
+  authMode=mode==='signup'?'signup':'signin';
+  document.getElementById('authSignInTab').classList.toggle('active',authMode==='signin');
+  document.getElementById('authSignUpTab').classList.toggle('active',authMode==='signup');
+  document.getElementById('authSubmitBtn').textContent=authMode==='signin'?'Sign In':'Create Account';
+  document.getElementById('authPassword').autocomplete=authMode==='signin'?'current-password':'new-password';
+  document.getElementById('forgotPasswordBtn').style.display=authMode==='signin'?'inline':'none';
+  setAuthMessage('');
+}
+async function handleEmailAuth(event){
+  event.preventDefault();
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const btn=document.getElementById('authSubmitBtn'); btn.disabled=true;
+  setAuthMessage(authMode==='signin'?'Signing in…':'Creating account…');
+  try{
+    if(authMode==='signup'){
+      const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:APP_URL}});
+      if(error)throw error;
+      if(data.session){setAuthMessage('Account created. Signing you in…','success')}
+      else setAuthMessage('Account created. Check your email to confirm your address, then return and sign in.','success');
+    }else{
+      const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }
+  }catch(err){setAuthMessage(err?.message||String(err),'error')}
+  finally{btn.disabled=false;btn.textContent=authMode==='signin'?'Sign In':'Create Account'}
+}
+async function signInWithGoogle(){
+  setAuthMessage('Opening Google sign-in…');
+  const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:APP_URL}});
+  if(error)setAuthMessage(error.message,'error');
+}
+async function sendPasswordReset(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){setAuthMessage('Enter your email address first.','error');return}
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:APP_URL});
+  if(error)setAuthMessage(error.message,'error'); else setAuthMessage('Password reset email sent.','success');
+}
+async function syncOneSignalIdentity(user){
+  if(!user)return;
+  window.currentAuthUserId=user.id;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  OneSignalDeferred.push(async function(OneSignal){
+    try{await OneSignal.login(user.id);console.log('OneSignal linked to user',user.id)}catch(err){console.error('OneSignal login failed',err)}
+  });
+}
+async function clearOneSignalIdentity(){
+  window.currentAuthUserId=null;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  OneSignalDeferred.push(async function(OneSignal){try{await OneSignal.logout()}catch(err){console.warn('OneSignal logout failed',err)}});
+}
+function showAuthPage(){
+  document.getElementById('authPage').classList.remove('hidden');
+  hideSplash();
+}
+function hideAuthPage(){document.getElementById('authPage').classList.add('hidden')}
+function migrateLegacyAppearanceForUser(){
+  if(!currentUser)return;
+  const key=`${APPEARANCE_KEY}_${currentUser.id}`;
+  if(!localStorage.getItem(key)){
+    const legacy=localStorage.getItem(APPEARANCE_KEY);
+    if(legacy)localStorage.setItem(key,legacy);
+  }
+}
+async function handleAuthenticatedSession(session,forceReload=false){
+  currentSession=session; currentUser=session.user; window.currentAuthUserId=currentUser.id;
+  const sameUser=lastLoadedUserId===currentUser.id;
+  const email=document.getElementById('settingsAccountEmail');if(email)email.textContent=currentUser.email||'Signed in';
+  hideAuthPage();
+  migrateLegacyAppearanceForUser(); applyAppearance();
+  syncOneSignalIdentity(currentUser);
+  if(!sameUser||forceReload){
+    lastLoadedUserId=currentUser.id;
+    tasks=[];render();
+    await loadTasks();
+    await loadAppSettings();
+  }
+}
+async function handleSignedOut(){
+  currentSession=null;currentUser=null;lastLoadedUserId=null;tasks=[];window.currentAuthUserId=null;
+  appSettings={reminder_notifications:true,due_today_notifications:true};
+  render(); applyAppearance({theme:'light',wallpaper:'none',customWallpaper:''});
+  showAuthPage();
+}
+async function logoutUser(){
+  closeSettings();
+  await clearOneSignalIdentity();
+  const {error}=await supabaseClient.auth.signOut();
+  if(error)alert('Could not sign out: '+error.message);
+}
+async function initializeAuth(){
+  showSplashLoading('Checking your session…');
+  const {data,error}=await supabaseClient.auth.getSession();
+  if(error){console.error(error);showAuthPage();return}
+  if(data.session)await handleAuthenticatedSession(data.session,true); else showAuthPage();
+}
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+  setTimeout(async()=>{
+    if(event==='PASSWORD_RECOVERY'){
+      const p=prompt('Enter your new password (minimum 6 characters):');
+      if(p&&p.length>=6){const {error}=await supabaseClient.auth.updateUser({password:p});alert(error?('Password update failed: '+error.message):'Password updated successfully.');}
+    }
+    if(session){
+      currentSession=session;
+      if(!currentUser||currentUser.id!==session.user.id)await handleAuthenticatedSession(session,true);
+    }else if(event==='SIGNED_OUT'){await handleSignedOut()}
+  },0);
+});
 
 function updateNotificationButton(permission, subscribed){
   const btn=document.getElementById('enableNotificationsBtn');
@@ -394,44 +553,44 @@ function refreshSettingsUI(){
   document.querySelectorAll('[data-wallpaper-option]').forEach(b=>b.classList.toggle('active',b.dataset.wallpaperOption===a.wallpaper));
 }
 async function loadAppSettings(){
+  if(!currentUser)return;
   const status=document.getElementById('settingsSyncStatus');
   try{
-    const res=await fetch(`${SETTINGS_ENDPOINT}?id=eq.default&select=*`,{headers:apiHeaders(),cache:'no-store'});
+    const res=await fetch(`${SETTINGS_ENDPOINT}?user_id=eq.${encodeURIComponent(currentUser.id)}&select=*`,{headers:apiHeaders(),cache:'no-store'});
     if(!res.ok)throw new Error(await res.text());
     const rows=await res.json();
     if(rows[0]) appSettings={...appSettings,...rows[0]};
+    else{
+      const create=await fetch(SETTINGS_ENDPOINT,{method:'POST',headers:apiHeaders({'Prefer':'return=representation'}),body:JSON.stringify({user_id:currentUser.id,reminder_notifications:true,due_today_notifications:true})});
+      if(!create.ok)throw new Error(await create.text());
+      const created=await create.json(); if(created[0])appSettings={...appSettings,...created[0]};
+    }
     if(status){status.textContent='Notification settings synced.';status.classList.remove('error')}
   }catch(err){
     console.warn('Settings backend unavailable:',err);
-    if(status){status.textContent='Notification settings table is not connected yet. Theme settings still work on this device.';status.classList.add('error')}
+    if(status){status.textContent='Could not sync notification settings.';status.classList.add('error')}
   }
   refreshSettingsUI();
 }
 async function saveNotificationSettings(){
+  if(!currentUser)return;
   const reminder=document.getElementById('settingReminderNotifications').checked;
   const dueToday=document.getElementById('settingDueTodayNotifications').checked;
-  const old={...appSettings};
-  appSettings.reminder_notifications=reminder;
-  appSettings.due_today_notifications=dueToday;
-  const status=document.getElementById('settingsSyncStatus');
-  if(status){status.textContent='Saving…';status.classList.remove('error')}
+  const old={...appSettings}; appSettings.reminder_notifications=reminder; appSettings.due_today_notifications=dueToday;
+  const status=document.getElementById('settingsSyncStatus'); if(status){status.textContent='Saving…';status.classList.remove('error')}
   try{
-    const res=await fetch(`${SETTINGS_ENDPOINT}?id=eq.default`,{
+    const res=await fetch(`${SETTINGS_ENDPOINT}?user_id=eq.${encodeURIComponent(currentUser.id)}`,{
       method:'PATCH',headers:apiHeaders({'Prefer':'return=representation'}),
       body:JSON.stringify({reminder_notifications:reminder,due_today_notifications:dueToday,updated_at:new Date().toISOString()})
     });
     if(!res.ok)throw new Error(await res.text());
     if(status)status.textContent='Notification settings saved.';
-  }catch(err){
-    appSettings=old;refreshSettingsUI();
-    console.error('Settings save error:',err);
-    if(status){status.textContent='Could not save notification settings to Supabase.';status.classList.add('error')}
-  }
+  }catch(err){appSettings=old;refreshSettingsUI();console.error(err);if(status){status.textContent='Could not save notification settings.';status.classList.add('error')}}
 }
 function readAppearance(){
-  try{return {...{theme:'light',wallpaper:'none',customWallpaper:''},...JSON.parse(localStorage.getItem(APPEARANCE_KEY)||'{}')}}catch{return {theme:'light',wallpaper:'none',customWallpaper:''}}
+  try{return {...{theme:'light',wallpaper:'none',customWallpaper:''},...JSON.parse(localStorage.getItem(appearanceStorageKey())||'{}')}}catch{return {theme:'light',wallpaper:'none',customWallpaper:''}}
 }
-function saveAppearance(a){localStorage.setItem(APPEARANCE_KEY,JSON.stringify(a));applyAppearance(a);refreshSettingsUI()}
+function saveAppearance(a){localStorage.setItem(appearanceStorageKey(),JSON.stringify(a));applyAppearance(a);refreshSettingsUI()}
 function setTheme(theme){const a=readAppearance();a.theme=theme;saveAppearance(a)}
 function setWallpaper(wallpaper){const a=readAppearance();a.wallpaper=wallpaper;saveAppearance(a)}
 function applyAppearance(a=readAppearance()){
@@ -481,9 +640,10 @@ function typeClass(type){return 'type-'+String(type||'other').toLowerCase()}
 function prioClass(p){return 'prio-'+String(p||'normal').toLowerCase()}
 
 function apiHeaders(extra={}){
+  if(!currentSession?.access_token)throw new Error('Not authenticated');
   return {
     'apikey':SUPABASE_KEY,
-    'Authorization':`Bearer ${SUPABASE_KEY}`,
+    'Authorization':`Bearer ${currentSession.access_token}`,
     'Content-Type':'application/json',
     ...extra
   };
@@ -491,6 +651,7 @@ function apiHeaders(extra={}){
 function rowToTask(r){
   return {
     id:r.id,
+    userId:r.user_id||'',
     name:r.task_name||'',
     notes:r.description||'',
     type:r.task_type||'Other',
@@ -510,6 +671,7 @@ function rowToTask(r){
 function taskToRow(t){
   return {
     id:t.id,
+    user_id:currentUser?.id||t.userId,
     task_name:t.name,
     description:t.notes||null,
     task_type:t.type,
@@ -525,7 +687,7 @@ function taskToRow(t){
     due_today_sent:t.dueTodaySent===true
   };
 }
-function cacheTasks(){localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks))}
+function cacheTasks(){if(currentUser)localStorage.setItem(`${STORAGE_KEY}_${currentUser.id}`,JSON.stringify(tasks))}
 function setSyncMessage(message,isError=false){}
 function showSplashLoading(message='Syncing your tasks…'){
   const splash=document.getElementById('syncSplash');
@@ -550,7 +712,7 @@ function hideSplash(){
 async function loadTasks(){
   showSplashLoading();
   try{
-    const res=await fetch(`${TASKS_ENDPOINT}?select=*&order=created_at.desc`,{headers:apiHeaders(),cache:'no-store'});
+    const res=await fetch(`${TASKS_ENDPOINT}?user_id=eq.${encodeURIComponent(currentUser.id)}&select=*&order=created_at.desc`,{headers:apiHeaders(),cache:'no-store'});
     if(!res.ok)throw new Error(await res.text());
     tasks=(await res.json()).map(rowToTask);
     cacheTasks();
@@ -643,11 +805,12 @@ function toggleTaskDetails(id){
 }
 
 function openTaskModal(){
+  if(!currentUser)return;
   document.getElementById('modalTitle').textContent='Add Task'; document.getElementById('taskForm').reset(); document.getElementById('taskId').value='';
   document.getElementById('taskStart').value=todayISO(); document.getElementById('taskDeadline').value=todayISO(); syncReminderLimit(); document.body.classList.add('modal-open'); document.getElementById('taskDialog').showModal();
 }
 function closeTaskModal(){document.getElementById('taskDialog').close(); document.body.classList.remove('modal-open')}
-function editTask(id){const t=tasks.find(x=>x.id===id); if(!t)return; document.getElementById('modalTitle').textContent='Edit Task'; document.getElementById('taskId').value=t.id; document.getElementById('taskName').value=t.name; document.getElementById('taskNotes').value=t.notes||''; document.getElementById('taskType').value=t.type; document.getElementById('taskPriority').value=t.priority; document.getElementById('taskStatus').value=t.status; document.getElementById('taskStart').value=t.start||''; document.getElementById('taskReminderDate').value=t.reminderDate||''; document.getElementById('taskReminderTime').value=t.reminderTime||''; document.getElementById('taskDeadline').value=t.deadline||''; document.getElementById('taskDeadlineTime').value=t.deadlineTime||''; syncReminderLimit(); document.getElementById('taskDialog').showModal()}
+function editTask(id){if(!currentUser)return;const t=tasks.find(x=>x.id===id); if(!t)return; document.getElementById('modalTitle').textContent='Edit Task'; document.getElementById('taskId').value=t.id; document.getElementById('taskName').value=t.name; document.getElementById('taskNotes').value=t.notes||''; document.getElementById('taskType').value=t.type; document.getElementById('taskPriority').value=t.priority; document.getElementById('taskStatus').value=t.status; document.getElementById('taskStart').value=t.start||''; document.getElementById('taskReminderDate').value=t.reminderDate||''; document.getElementById('taskReminderTime').value=t.reminderTime||''; document.getElementById('taskDeadline').value=t.deadline||''; document.getElementById('taskDeadlineTime').value=t.deadlineTime||''; syncReminderLimit(); document.body.classList.add('modal-open'); document.getElementById('taskDialog').showModal()}
 async function deleteTask(id){
   if(!confirm('Delete this task?'))return;
   try{
@@ -715,14 +878,13 @@ document.getElementById('taskForm').addEventListener('submit',async e=>{
     cacheTasks(); render(); closeTaskModal(); setSyncMessage('Synced');
   }catch(err){
     console.error(err); setSyncMessage('Save failed',true);
-    alert('Could not save this task to Supabase. If this is your first test, make sure the anon role has SELECT/INSERT/UPDATE/DELETE permission on the tasks table.');
+    alert('Could not save this task. Your session may have expired or the task permissions need checking.');
   }finally{saveBtn.disabled=false; saveBtn.textContent='Save Task';}
 });
 
 document.getElementById('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]'); if(!b)return; currentFilter=b.dataset.filter; document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===b)); render()});
 
-loadTasks();
-loadAppSettings();
+initializeAuth();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
 </script>
 </body>
