@@ -60,6 +60,11 @@ Deno.serve(async () => {
           include_aliases: { external_id: [userId] },
           headings: { en: title },
           contents: { en: message },
+          chrome_web_icon: task.priority === "Critical"
+            ? "https://peppermooon.github.io/My-Task/icons/notification-critical.png"
+            : task.priority === "High"
+            ? "https://peppermooon.github.io/My-Task/icons/notification-high.png"
+            : undefined,
           web_url: "https://peppermooon.github.io/My-Task/",
         }),
       });
