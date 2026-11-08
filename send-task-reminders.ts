@@ -16,21 +16,32 @@ Deno.serve(async () => {
 
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Colombo",
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hour12: false,
     }).formatToParts(new Date());
 
-    const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    const part = (type: string) =>
+      parts.find((p) => p.type === type)?.value ?? "";
+
     const today = `${part("year")}-${part("month")}-${part("day")}`;
     const currentTime = `${part("hour")}:${part("minute")}:${part("second")}`;
 
     const { data: settingsRows, error: settingsError } = await supabase
       .from("user_settings")
       .select("user_id,reminder_notifications,due_today_notifications");
+
     if (settingsError) throw settingsError;
 
-    const settingsByUser = new Map<string, { reminder: boolean; dueToday: boolean }>();
+    const settingsByUser = new Map<
+      string,
+      { reminder: boolean; dueToday: boolean }
+    >();
+
     for (const s of settingsRows ?? []) {
       settingsByUser.set(String(s.user_id), {
         reminder: s.reminder_notifications !== false,
@@ -43,59 +54,115 @@ Deno.serve(async () => {
       .select("*")
       .not("user_id", "is", null);
 
-    if (error) return Response.json({ stage: "loading_tasks", error }, { status: 500 });
+    if (error) {
+      return Response.json(
+        { stage: "loading_tasks", error },
+        { status: 500 },
+      );
+    }
 
     const results: unknown[] = [];
 
-    async function sendPush(userId: string, title: string, message: string) {
-      const response = await fetch("https://api.onesignal.com/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Key ${oneSignalApiKey}`,
+    async function sendPush(
+      userId: string,
+      title: string,
+      message: string,
+      priority: string,
+    ) {
+      const response = await fetch(
+        "https://api.onesignal.com/notifications",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Key ${oneSignalApiKey}`,
+          },
+          body: JSON.stringify({
+            app_id: oneSignalAppId,
+            target_channel: "push",
+            include_aliases: { external_id: [userId] },
+            headings: { en: title },
+            contents: { en: message },
+
+            chrome_web_icon: priority === "Critical"
+              ? "https://peppermooon.github.io/My-Task/icons/notification-critical.png"
+              : priority === "High"
+                ? "https://peppermooon.github.io/My-Task/icons/notification-high.png"
+                : undefined,
+
+            web_url: "https://peppermooon.github.io/My-Task/",
+          }),
         },
-        body: JSON.stringify({
-          app_id: oneSignalAppId,
-          target_channel: "push",
-          include_aliases: { external_id: [userId] },
-          headings: { en: title },
-          contents: { en: message },
-          chrome_web_icon: task.priority === "Critical"
-            ? "https://peppermooon.github.io/My-Task/icons/notification-critical.png"
-            : task.priority === "High"
-            ? "https://peppermooon.github.io/My-Task/icons/notification-high.png"
-            : undefined,
-          web_url: "https://peppermooon.github.io/My-Task/",
-        }),
-      });
+      );
+
       const body = await response.json();
-      const sent = response.ok && typeof body.id === "string" && body.id.length > 0;
-      const noRecipient = JSON.stringify(body).toLowerCase().includes("not subscribed") ||
+
+      const sent =
+        response.ok &&
+        typeof body.id === "string" &&
+        body.id.length > 0;
+
+      const noRecipient =
+        JSON.stringify(body).toLowerCase().includes("not subscribed") ||
         JSON.stringify(body).toLowerCase().includes("no subscribed");
+
       return { sent, noRecipient, body };
     }
 
     for (const task of tasks ?? []) {
       if (["Completed", "Cancelled"].includes(task.status)) continue;
+
       const userId = String(task.user_id);
-      const prefs = settingsByUser.get(userId) ?? { reminder: true, dueToday: true };
+      const priority = String(task.priority ?? "");
+
+      const prefs = settingsByUser.get(userId) ?? {
+        reminder: true,
+        dueToday: true,
+      };
 
       const reminderDue =
         task.reminder_sent === false &&
         task.reminder_date &&
         (task.reminder_date < today ||
-          (task.reminder_date === today && (!task.reminder_time || task.reminder_time <= currentTime)));
+          (task.reminder_date === today &&
+            (!task.reminder_time || task.reminder_time <= currentTime)));
 
       if (reminderDue) {
         if (!prefs.reminder) {
-          await supabase.from("tasks").update({ reminder_sent: true }).eq("id", task.id);
-          results.push({ type: "reminder", task: task.task_name, user_id: userId, sent: false, suppressed: true });
+          await supabase
+            .from("tasks")
+            .update({ reminder_sent: true })
+            .eq("id", task.id);
+
+          results.push({
+            type: "reminder",
+            task: task.task_name,
+            user_id: userId,
+            sent: false,
+            suppressed: true,
+          });
         } else {
-          const push = await sendPush(userId, "Task Reminder", task.task_name);
+          const push = await sendPush(
+            userId,
+            "Task Reminder",
+            task.task_name,
+            priority,
+          );
+
           if (push.sent || push.noRecipient) {
-            await supabase.from("tasks").update({ reminder_sent: true }).eq("id", task.id);
+            await supabase
+              .from("tasks")
+              .update({ reminder_sent: true })
+              .eq("id", task.id);
           }
-          results.push({ type: "reminder", task: task.task_name, user_id: userId, sent: push.sent, onesignal: push.body });
+
+          results.push({
+            type: "reminder",
+            task: task.task_name,
+            user_id: userId,
+            sent: push.sent,
+            onesignal: push.body,
+          });
         }
       }
 
@@ -106,23 +173,55 @@ Deno.serve(async () => {
 
       if (dueTodayDue) {
         if (!prefs.dueToday) {
-          await supabase.from("tasks").update({ due_today_sent: true }).eq("id", task.id);
-          results.push({ type: "due_today", task: task.task_name, user_id: userId, sent: false, suppressed: true });
+          await supabase
+            .from("tasks")
+            .update({ due_today_sent: true })
+            .eq("id", task.id);
+
+          results.push({
+            type: "due_today",
+            task: task.task_name,
+            user_id: userId,
+            sent: false,
+            suppressed: true,
+          });
         } else {
-          const push = await sendPush(userId, "Due Today", `${task.task_name} is due today.`);
+          const push = await sendPush(
+            userId,
+            "Due Today",
+            `${task.task_name} is due today.`,
+            priority,
+          );
+
           if (push.sent || push.noRecipient) {
-            await supabase.from("tasks").update({ due_today_sent: true }).eq("id", task.id);
+            await supabase
+              .from("tasks")
+              .update({ due_today_sent: true })
+              .eq("id", task.id);
           }
-          results.push({ type: "due_today", task: task.task_name, user_id: userId, sent: push.sent, onesignal: push.body });
+
+          results.push({
+            type: "due_today",
+            task: task.task_name,
+            user_id: userId,
+            sent: push.sent,
+            onesignal: push.body,
+          });
         }
       }
     }
 
-    return Response.json({ current_date: today, current_time: currentTime, results });
+    return Response.json({
+      current_date: today,
+      current_time: currentTime,
+      results,
+    });
   } catch (error) {
     return Response.json({
       stage: "unexpected_error",
-      error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      error: error instanceof Error
+        ? { message: error.message, stack: error.stack }
+        : error,
     }, { status: 500 });
   }
 });
