@@ -1,0 +1,72 @@
+MY TASKS - CONTINUOUS FOLLOW-UP REMINDERS
+========================================
+
+WHAT THIS UPDATE ADDS
+---------------------
+1. In the existing Add Task / Edit Task form, enable "Continuous reminders until deadline".
+2. Choose a repeat frequency and notification time for that task.
+3. Available frequencies change automatically based on the number of days remaining.
+4. Repeated reminders refer to the original task. They do not create extra tasks.
+5. Reminders stop when the task is Completed or Cancelled, or when its deadline date arrives/passes.
+6. Changing the deadline or repeat frequency recalculates the next reminder date.
+7. A new Settings switch lets each account turn all continuous follow-up notifications on/off.
+8. Existing Task Reminder and Due Today notifications keep their current behaviour.
+
+FREQUENCY RULE
+--------------
+The app offers only intervals shorter than the number of calendar days remaining until the deadline.
+Available choices are Every day, Every 2 days, Every 3 days, Every 5 days, and Every week,
+when each option fits before the deadline.
+
+Examples:
+- 1 day remaining: no continuous frequency (Due Today still applies on deadline day).
+- 2 days remaining: Every day.
+- 3 days remaining: Every day, Every 2 days.
+- 5 days remaining: Every day, Every 2 days, Every 3 days.
+- 7 days remaining: Every day, Every 2 days, Every 3 days, Every 5 days.
+- 14 days remaining: all choices, including Every week.
+
+SETUP - FOLLOW THIS ORDER
+-------------------------
+1. BACK UP YOUR CURRENT GITHUB REPOSITORY.
+   Download a copy of the current repository before replacing any files.
+
+2. RUN THE DATABASE MIGRATION.
+   Supabase Dashboard -> SQL Editor -> New query.
+   Open continuous_reminders_migration.sql from this bundle, paste the complete SQL,
+   and run it. This adds the new columns without deleting or changing existing tasks.
+   Existing tasks will have continuous reminders OFF by default.
+
+3. DEPLOY THE EDGE FUNCTION.
+   Supabase Dashboard -> Edge Functions -> send-task-reminders -> Edit.
+   Replace the function code with send-task-reminders.ts from this bundle and Deploy.
+   Keep your existing Cron schedule. No Cron changes are required.
+   Keep the existing ONESIGNAL_APP_ID and ONESIGNAL_API_KEY secrets.
+
+4. UPDATE THE WEBSITE.
+   Replace the current index.html with the index.html in this bundle.
+   Keep the other existing website files (manifest, service worker, icons, OneSignal worker)
+   unless they are also included in the bundle. This update does not require changing them.
+   Commit/push and wait for GitHub Pages to finish deploying.
+
+5. TEST WITH A TEST TASK.
+   - Create a task with a deadline 3 days away.
+   - Enable Continuous reminders until deadline.
+   - Confirm only Every day and Every 2 days are offered.
+   - Choose a frequency and notification time, then save.
+   - In Supabase Table Editor, confirm continuous_reminders_enabled is true,
+     the interval/time are saved, and continuous_reminder_next_date is set.
+   - For a quick push test, temporarily set continuous_reminder_next_date to today's
+     date and choose a time a few minutes in the past. The next Cron run should send
+     one Task Follow-up notification and move the next date forward by the interval.
+   - Mark the task Completed and confirm no further follow-up is sent.
+
+IMPORTANT
+---------
+- The website and Edge Function both need the database migration. Run the SQL first.
+- Continuous reminders use Asia/Colombo time, matching the existing reminder function.
+- A repeat is scheduled from the day the feature is enabled/changed. For example, choosing
+  Every 2 days schedules the first follow-up two calendar days later.
+- The new Settings switch is independent of the existing Task Reminder and Due Today switches.
+- If Continuous follow-up notifications are switched off, due repeat occurrences are skipped
+  and the schedule advances; switching it back on will not send a backlog of missed alerts.
