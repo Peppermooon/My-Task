@@ -304,7 +304,21 @@
         <div class="field"><label>Reminder time</label><input type="time" id="taskReminderTime" /></div>
         <div class="field"><label>Deadline date *</label><input type="date" id="taskDeadline" required /></div>
         <div class="field"><label>Deadline time</label><input type="time" id="taskDeadlineTime" /></div>
-        
+        <div class="field full" style="border:1px solid var(--line);border-radius:12px;padding:12px">
+          <label style="display:flex;align-items:center;gap:9px">
+            <input type="checkbox" id="continuousRemindersEnabled" onchange="updateContinuousReminderOptions()" style="width:18px;height:18px">
+            Continue reminders until deadline
+          </label>
+          <div id="continuousReminderOptions" style="display:none;margin-top:12px">
+            <label for="continuousReminderInterval" style="display:block;font-size:13px;font-weight:800;margin-bottom:6px">Reminder frequency</label>
+            <select id="continuousReminderInterval" style="width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px;font:inherit" onchange="updateContinuousReminderOptions()">
+              <option value="1">Every day</option>
+              <option value="2">Every 2 days</option>
+              <option value="7">Every week</option>
+            </select>
+            <div id="continuousReminderHint" class="hint">Repeat reminders use your existing reminder time.</div>
+          </div>
+        </div>
       </div>
       
     </div>
@@ -703,7 +717,11 @@ function rowToTask(r){
     createdAt:r.created_at||'',
     completedAt:r.completed_at||'',
     reminderSent:r.reminder_sent===true,
-    dueTodaySent:r.due_today_sent===true
+    dueTodaySent:r.due_today_sent===true,
+    continuousRemindersEnabled:r.continuous_reminders_enabled===true,
+    continuousReminderIntervalDays:Number(r.continuous_reminder_interval_days)||1,
+    continuousReminderTime:r.continuous_reminder_time ? String(r.continuous_reminder_time).slice(0,5) : '',
+    continuousReminderNextDate:r.continuous_reminder_next_date||''
   };
 }
 function taskToRow(t){
@@ -722,7 +740,11 @@ function taskToRow(t){
     deadline_time:t.deadlineTime||null,
     completed_at:t.completedAt||null,
     reminder_sent:t.reminderSent===true,
-    due_today_sent:t.dueTodaySent===true
+    due_today_sent:t.dueTodaySent===true,
+    continuous_reminders_enabled:t.continuousRemindersEnabled===true,
+    continuous_reminder_interval_days:t.continuousRemindersEnabled ? Number(t.continuousReminderIntervalDays)||1 : null,
+    continuous_reminder_time:t.continuousRemindersEnabled ? (t.continuousReminderTime||t.reminderTime||'09:00') : null,
+    continuous_reminder_next_date:t.continuousRemindersEnabled ? (t.continuousReminderNextDate||null) : null
   };
 }
 function cacheTasks(){if(currentUser)localStorage.setItem(`${STORAGE_KEY}_${currentUser.id}`,JSON.stringify(tasks))}
@@ -844,11 +866,40 @@ function toggleTaskDetails(id){
 
 function openTaskModal(){
   if(!currentUser)return;
-  document.getElementById('modalTitle').textContent='Add Task'; document.getElementById('taskForm').reset(); document.getElementById('taskId').value='';
-  document.getElementById('taskStart').value=todayISO(); document.getElementById('taskDeadline').value=todayISO(); syncReminderLimit(); document.body.classList.add('modal-open'); document.getElementById('taskDialog').showModal();
+  document.getElementById('modalTitle').textContent='Add Task';
+  document.getElementById('taskForm').reset();
+  document.getElementById('taskId').value='';
+  document.getElementById('taskStart').value=todayISO();
+  document.getElementById('taskDeadline').value=todayISO();
+  document.getElementById('continuousRemindersEnabled').checked=false;
+  updateContinuousReminderOptions();
+  syncReminderLimit();
+  document.body.classList.add('modal-open');
+  document.getElementById('taskDialog').showModal();
 }
 function closeTaskModal(){document.getElementById('taskDialog').close(); document.body.classList.remove('modal-open')}
-function editTask(id){if(!currentUser)return;const t=tasks.find(x=>x.id===id); if(!t)return; document.getElementById('modalTitle').textContent='Edit Task'; document.getElementById('taskId').value=t.id; document.getElementById('taskName').value=t.name; document.getElementById('taskNotes').value=t.notes||''; document.getElementById('taskType').value=t.type; document.getElementById('taskPriority').value=t.priority; document.getElementById('taskStatus').value=t.status; document.getElementById('taskStart').value=t.start||''; document.getElementById('taskReminderDate').value=t.reminderDate||''; document.getElementById('taskReminderTime').value=t.reminderTime||''; document.getElementById('taskDeadline').value=t.deadline||''; document.getElementById('taskDeadlineTime').value=t.deadlineTime||''; syncReminderLimit(); document.body.classList.add('modal-open'); document.getElementById('taskDialog').showModal()}
+function editTask(id){
+  if(!currentUser)return;
+  const t=tasks.find(x=>x.id===id); if(!t)return;
+  document.getElementById('modalTitle').textContent='Edit Task';
+  document.getElementById('taskId').value=t.id;
+  document.getElementById('taskName').value=t.name;
+  document.getElementById('taskNotes').value=t.notes||'';
+  document.getElementById('taskType').value=t.type;
+  document.getElementById('taskPriority').value=t.priority;
+  document.getElementById('taskStatus').value=t.status;
+  document.getElementById('taskStart').value=t.start||'';
+  document.getElementById('taskReminderDate').value=t.reminderDate||'';
+  document.getElementById('taskReminderTime').value=t.reminderTime||'';
+  document.getElementById('taskDeadline').value=t.deadline||'';
+  document.getElementById('taskDeadlineTime').value=t.deadlineTime||'';
+  document.getElementById('continuousRemindersEnabled').checked=t.continuousRemindersEnabled===true;
+  document.getElementById('continuousReminderInterval').value=String(t.continuousReminderIntervalDays||1);
+  updateContinuousReminderOptions();
+  syncReminderLimit();
+  document.body.classList.add('modal-open');
+  document.getElementById('taskDialog').showModal();
+}
 async function deleteTask(id){
   if(!confirm('Delete this task?'))return;
   try{
@@ -872,6 +923,48 @@ async function changeStatus(id,status){
   }catch(err){Object.assign(t,old); render(); console.error(err); setSyncMessage('Update failed',true); alert('Could not update the task in Supabase.');}
 }
 
+function updateContinuousReminderOptions(){
+  const enabled=document.getElementById('continuousRemindersEnabled').checked;
+  const panel=document.getElementById('continuousReminderOptions');
+  const select=document.getElementById('continuousReminderInterval');
+  const hint=document.getElementById('continuousReminderHint');
+  panel.style.display=enabled?'block':'none';
+  if(!enabled)return;
+
+  const firstDate=document.getElementById('taskReminderDate').value;
+  const deadline=document.getElementById('taskDeadline').value;
+  const previous=Number(select.value)||1;
+  const dayMs=86400000;
+  const daysRemaining=(firstDate&&deadline)
+    ? Math.round((Date.parse(deadline+'T00:00:00Z')-Date.parse(firstDate+'T00:00:00Z'))/dayMs)
+    : 0;
+  const options=[
+    {days:1,label:'Every day'},
+    {days:2,label:'Every 2 days'},
+    {days:7,label:'Every week'}
+  ].filter(option=>option.days<daysRemaining);
+
+  select.innerHTML='';
+  if(!options.length){
+    const option=document.createElement('option');
+    option.value='';
+    option.textContent='No frequency fits before the deadline';
+    select.appendChild(option);
+    select.disabled=true;
+    hint.textContent='Choose a reminder date earlier than the deadline. At least one repeat must fit before the deadline.';
+    return;
+  }
+
+  select.disabled=false;
+  options.forEach(item=>{
+    const option=document.createElement('option');
+    option.value=String(item.days);
+    option.textContent=item.label;
+    select.appendChild(option);
+  });
+  select.value=options.some(item=>item.days===previous)?String(previous):String(options[0].days);
+  hint.textContent='The first reminder still uses your existing reminder date and time. Follow-up reminders use the same time.';
+}
 function syncReminderLimit(){
   const deadline=document.getElementById('taskDeadline').value;
   const reminder=document.getElementById('taskReminderDate');
@@ -888,9 +981,9 @@ function validateReminderAgainstDeadline(){
   if(rDate.value && dDate.value && rDate.value===dDate.value && rTime.value && dTime.value && rTime.value>dTime.value){rTime.setCustomValidity('Reminder time cannot be after the deadline time.'); return false;}
   return true;
 }
-document.getElementById('taskDeadline').addEventListener('change',syncReminderLimit);
+document.getElementById('taskDeadline').addEventListener('change',()=>{syncReminderLimit();updateContinuousReminderOptions()});
 document.getElementById('taskDeadlineTime').addEventListener('change',validateReminderAgainstDeadline);
-document.getElementById('taskReminderDate').addEventListener('change',validateReminderAgainstDeadline);
+document.getElementById('taskReminderDate').addEventListener('change',()=>{validateReminderAgainstDeadline();updateContinuousReminderOptions()});
 document.getElementById('taskReminderTime').addEventListener('change',validateReminderAgainstDeadline);
 
 document.getElementById('priorityHeader').addEventListener('click',()=>{if(currentFilter!=='all')return; allTaskSort=allTaskSort==='priority'?'newest':'priority'; render();});
@@ -899,14 +992,38 @@ document.getElementById('taskDialog').addEventListener('close',()=>document.body
 document.getElementById('taskForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!validateReminderAgainstDeadline()){e.target.reportValidity(); return;}
+  const repeatEnabled=document.getElementById('continuousRemindersEnabled').checked;
+  const repeatInterval=Number(document.getElementById('continuousReminderInterval').value);
+  const firstReminderDate=document.getElementById('taskReminderDate').value;
+  const deadlineDate=document.getElementById('taskDeadline').value;
+  const remainingDays=(firstReminderDate&&deadlineDate)
+    ? Math.round((Date.parse(deadlineDate+'T00:00:00Z')-Date.parse(firstReminderDate+'T00:00:00Z'))/86400000)
+    : 0;
+  if(repeatEnabled && (!firstReminderDate || !repeatInterval || repeatInterval>=remainingDays)){
+    alert('Choose a reminder date and a repeat frequency that allows at least one reminder before the deadline.');
+    return;
+  }
   const saveBtn=e.target.querySelector('button[type="submit"]');
   saveBtn.disabled=true; saveBtn.textContent='Saving…';
   const id=document.getElementById('taskId').value||crypto.randomUUID();
   const existing=tasks.find(t=>t.id===id);
   const status=document.getElementById('taskStatus').value;
-  const obj={id,name:document.getElementById('taskName').value.trim(),notes:document.getElementById('taskNotes').value.trim(),type:document.getElementById('taskType').value,priority:document.getElementById('taskPriority').value,status,start:document.getElementById('taskStart').value,reminderDate:document.getElementById('taskReminderDate').value,reminderTime:document.getElementById('taskReminderTime').value,deadline:document.getElementById('taskDeadline').value,deadlineTime:document.getElementById('taskDeadlineTime').value,createdAt:existing?.createdAt||new Date().toISOString(),completedAt:existing?.completedAt||'',reminderSent:existing?.reminderSent||false,dueTodaySent:existing?.dueTodaySent||false};
+  const obj={id,name:document.getElementById('taskName').value.trim(),notes:document.getElementById('taskNotes').value.trim(),type:document.getElementById('taskType').value,priority:document.getElementById('taskPriority').value,status,start:document.getElementById('taskStart').value,reminderDate:document.getElementById('taskReminderDate').value,reminderTime:document.getElementById('taskReminderTime').value,deadline:document.getElementById('taskDeadline').value,deadlineTime:document.getElementById('taskDeadlineTime').value,createdAt:existing?.createdAt||new Date().toISOString(),completedAt:existing?.completedAt||'',reminderSent:existing?.reminderSent||false,dueTodaySent:existing?.dueTodaySent||false,continuousRemindersEnabled:repeatEnabled,continuousReminderIntervalDays:repeatInterval||1,continuousReminderTime:document.getElementById('taskReminderTime').value||'09:00',continuousReminderNextDate:existing?.continuousReminderNextDate||''};
   if(!existing || existing.reminderDate!==obj.reminderDate || existing.reminderTime!==obj.reminderTime)obj.reminderSent=false;
   if(!existing || existing.deadline!==obj.deadline || existing.deadlineTime!==obj.deadlineTime)obj.dueTodaySent=false;
+  const repeatScheduleChanged=!existing ||
+    existing.continuousRemindersEnabled!==obj.continuousRemindersEnabled ||
+    existing.continuousReminderIntervalDays!==obj.continuousReminderIntervalDays ||
+    existing.reminderDate!==obj.reminderDate ||
+    existing.reminderTime!==obj.reminderTime ||
+    existing.deadline!==obj.deadline;
+  if(!obj.continuousRemindersEnabled){
+    obj.continuousReminderNextDate='';
+  }else if(repeatScheduleChanged){
+    const next=new Date(Date.parse(obj.reminderDate+'T00:00:00Z'));
+    next.setUTCDate(next.getUTCDate()+obj.continuousReminderIntervalDays);
+    obj.continuousReminderNextDate=next.toISOString().slice(0,10);
+  }
   if(status==='Completed'&&!obj.completedAt)obj.completedAt=new Date().toISOString();
   if(status!=='Completed')obj.completedAt='';
   try{
