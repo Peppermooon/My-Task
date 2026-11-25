@@ -183,6 +183,74 @@ Deno.serve(async () => {
         }
       }
 
+      // Optional recurring follow-up reminders. This is separate from the
+      // original one-time reminder and Due Today notification logic.
+      const recurringDue =
+        task.continuous_reminders_enabled === true &&
+        task.continuous_reminder_next_date &&
+        Number(task.continuous_reminder_interval_days) > 0 &&
+        task.deadline_date &&
+        task.continuous_reminder_next_date < task.deadline_date &&
+        (
+          task.continuous_reminder_next_date < today ||
+          (
+            task.continuous_reminder_next_date === today &&
+            String(task.continuous_reminder_time || task.reminder_time || "09:00:00") <= currentTime
+          )
+        );
+
+      if (recurringDue) {
+        const intervalDays = Number(task.continuous_reminder_interval_days);
+        const scheduledDate = String(task.continuous_reminder_next_date);
+        const nextDateAfter = (date: string) => {
+          const d = new Date(`${date}T00:00:00Z`);
+          d.setUTCDate(d.getUTCDate() + intervalDays);
+          return d.toISOString().slice(0, 10);
+        };
+
+        let followingDate = nextDateAfter(scheduledDate);
+        // Do not send a burst of missed reminders if Cron was delayed.
+        while (followingDate <= today) followingDate = nextDateAfter(followingDate);
+        const nextScheduledDate =
+          followingDate < String(task.deadline_date) ? followingDate : null;
+
+        if (!prefs.reminder) {
+          await supabase.from("tasks").update({
+            continuous_reminder_next_date: nextScheduledDate,
+          }).eq("id", task.id);
+          results.push({
+            type: "continuous_reminder",
+            task: task.task_name,
+            user_id: userId,
+            sent: false,
+            suppressed: true,
+            next_date: nextScheduledDate,
+          });
+        } else {
+          const push = await sendPush(
+            userId,
+            "Task Follow-up",
+            `${task.task_name} is still pending. Deadline: ${task.deadline_date}.`,
+            priority,
+          );
+
+          if (push.sent || push.noRecipient) {
+            await supabase.from("tasks").update({
+              continuous_reminder_next_date: nextScheduledDate,
+            }).eq("id", task.id);
+          }
+
+          results.push({
+            type: "continuous_reminder",
+            task: task.task_name,
+            user_id: userId,
+            sent: push.sent,
+            next_date: nextScheduledDate,
+            onesignal: push.body,
+          });
+        }
+      }
+
       const dueTodayDue =
         task.due_today_sent === false &&
         task.deadline_date === today &&
